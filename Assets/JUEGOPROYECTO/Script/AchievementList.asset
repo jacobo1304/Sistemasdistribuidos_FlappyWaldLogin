@@ -1,0 +1,124 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f8f916bd4c5a444fa42e298d90f488d, type: 3}
+  m_Name: AchievementList
+  m_EditorClassIdentifier: 
+  AchievementsListID: AchievementsList
+  Achievements:
+  - AchievementID: PrincessInAnotherCastle
+    AchievementType: 0
+    HiddenAchievement: 0
+    UnlockedStatus: 0
+    Title: Explorador de jungla
+    Description: Pasa el primer nivel
+    Points: 200
+    LockedImage: {fileID: 21300000, guid: 1964fca9972592b44b7bb4db1cd0ab2f, type: 3}
+    UnlockedImage: {fileID: 21300000, guid: f817785062cfce34f99360fc8d50c5da, type: 3}
+    UnlockedSound: {fileID: 0}
+    ProgressTarget: 0
+    ProgressCurrent: 0
+  - AchievementID: JumpAround
+    AchievementType: 0
+    HiddenAchievement: 0
+    UnlockedStatus: 0
+    Title: 'Saltador silvestre '
+    Description: Salta al menos 10 veces.
+    Points: 100
+    LockedImage: {fileID: 21300000, guid: 1b3bab36cc0d5804eb0c9ea5a61de86d, type: 3}
+    UnlockedImage: {fileID: 21300000, guid: 6687efc807903f040b16d01238570708, type: 3}
+    UnlockedSound: {fileID: 0}
+    ProgressTarget: 10
+    ProgressCurrent: 0
+  - AchievementID: MoneyMoneyMoney
+    AchievementType: 0
+    HiddenAchievement: 0
+    UnlockedStatus: 0
+    Title: Ecologista
+    Description: Agarra 3 monedas
+    Points: 50
+    LockedImage: {fileID: 21300000, guid: 2d5a50ffa64ac6c45a98818c27c6ba15, type: 3}
+    UnlockedImage: {fileID: 21300000, guid: 6f6d3ef363ceb94469aa3ec29eaff1bd, type: 3}
+    UnlockedSound: {fileID: 0}
+    ProgressTarget: 3
+    ProgressCurrent: 0
+  - AchievementID: DeathIsOnlyTheBeginning
+    AchievementType: 0
+    HiddenAchievement: 0
+    UnlockedStatus: 0
+    Title: Arbol caido
+    Description: Muere por primera vez
+    Points: 30
+    LockedImage: {fileID: 21300000, guid: 231d7287f750fd9448c142286ef3fc3a, type: 3}
+    UnlockedImage: {fileID: 21300000, guid: 7b77e6c70e130a142820dfe30e6a78bc, type: 3}
+    UnlockedSound: {fileID: 0}
+    ProgressTarget: 0
+    ProgressCurrent: 0
+  - AchievementID: Medic
+    AchievementType: 0
+    HiddenAchievement: 0
+    UnlockedStatus: 0
+    Title: Medic !
+    Description: Grab a health bonus
+    Points: 25
+    LockedImage: {fileID: 21300010, guid: fa6d364a5a0575245859952062aea14b, type: 3}
+    UnlockedImage: {fileID: 21300006, guid: fa6d364a5a0575245859952062aea14b, type: 3}
+    UnlockedSound: {fileID: 0}
+    ProgressTarget: 0
+    ProgressCurrent: 0
+  - AchievementID: SembradorExperto
+    AchievementType: 0
+    HiddenAchievement: 0
+    UnlockedStatus: 0
+    Title: Sembrador Experto!
+    Description: Recoje una semilla
+    Points: 25
+    LockedImage: {fileID: 21300000, guid: 13b2e9aa0f769144c978cd5e9069684c, type: 3}
+    UnlockedImage: {fileID: 21300000, guid: 38b6236bd9cc3b14a86f47fc0a20b84d, type: 3}
+    UnlockedSound: {fileID: 0}
+    ProgressTarget: 0
+    ProgressCurrent: 0
+  - AchievementID: Casivuelas
+    AchievementType: 0
+    HiddenAchievement: 0
+    UnlockedStatus: 0
+    Title: Casi que vuelas!
+    Description: Usa el dash 10 veces
+    Points: 25
+    LockedImage: {fileID: 21300010, guid: fa6d364a5a0575245859952062aea14b, type: 3}
+    UnlockedImage: {fileID: 21300006, guid: fa6d364a5a0575245859952062aea14b, type: 3}
+    UnlockedSound: {fileID: 0}
+    ProgressTarget: 1000
+    ProgressCurrent: 0
+  - AchievementID: Ardilla
+    AchievementType: 0
+    HiddenAchievement: 0
+    UnlockedStatus: 0
+    Title: Ardilla voladora
+    Description: Usa el dash 25 veces
+    Points: 25
+    LockedImage: {fileID: 21300000, guid: 3ced9bc137f70d245b75be604a8dd1e7, type: 3}
+    UnlockedImage: {fileID: 21300000, guid: e31592ee97045f94b9033ee6e9584e24, type: 3}
+    UnlockedSound: {fileID: 0}
+    ProgressTarget: 50
+    ProgressCurrent: 0
+  - AchievementID: Ciervo
+    AchievementType: 0
+    HiddenAchievement: 0
+    UnlockedStatus: 0
+    Title: Ciervo saltante
+    Description: Salta 100 veces.
+    Points: 25
+    LockedImage: {fileID: 21300000, guid: 4322696eda415734db0da115424ccd3b, type: 3}
+    UnlockedImage: {fileID: 21300000, guid: bff38033abfd8a54bafac03df2e1149f, type: 3}
+    UnlockedSound: {fileID: 0}
+    ProgressTarget: 15
+    ProgressCurrent: 0
