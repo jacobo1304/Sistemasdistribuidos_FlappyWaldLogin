@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using MoreMountains.CorgiEngine;
@@ -9,6 +10,12 @@ namespace JUEGOPROYECTO.Management
 {
     public class GeneracionEscena : MonoBehaviour
     {
+        private class ScoreMarker
+        {
+            public GameObject markerObject;
+            public bool counted;
+        }
+
         [Header("Player")]
         [Tooltip("The player character instance from the scene.")]
         public Character playerCharacter; // Added serialized field for the player
@@ -22,7 +29,6 @@ namespace JUEGOPROYECTO.Management
         public float horizontalSpacing = 3f;
         public float minHeight = -1f;
         public float maxHeight = 3f;
-        public float levelDuration = 20f;
 
         [Header("Platform Movement")]  
         [Tooltip("Speed at which platforms scroll left.")]
@@ -37,11 +43,11 @@ namespace JUEGOPROYECTO.Management
         public float holeHeight = 2f;
 
         [Header("Scene Transition")]
-        public string NextSceneName = "Nivel3";
+        public string NextSceneName = "Leaderboard";
 
-        [Header("UI Timer")]
-        [Tooltip("TextMeshPro UI element to display remaining time.")]
-        public TMP_Text timerText;
+        [Header("UI Score")]
+        [Tooltip("TextMeshPro UI element to display current score.")]
+        public TMP_Text scoreText;
 
         [Header("Start Settings")]
         [Tooltip("Static platform prefab under the player before level starts.")]
@@ -55,21 +61,12 @@ namespace JUEGOPROYECTO.Management
         [Tooltip("Message to display in the start prompt.")]
         public string startPromptMessage = "Jump or Fall to Start!"; // Serialized start prompt message
 
-        [Header("Victory Settings")]
-        [Tooltip("The pre-existing GameObject in the scene to activate upon victory.")]
-        public GameObject victoryObjectInScene; // New field for the scene object
-        [Tooltip("TextMeshPro UI element to display the victory message.")]
-        public TMP_Text victoryTextUI; // UI for victory message
-        [Tooltip("Message to display upon victory.")]
-        public string victoryMessage = "¡Victoria!"; // Serialized victory message
-        // [Tooltip("Y position offset from player's startCharacterY to spawn the victory prefab. e.g., -4f to spawn below.")]
-        // public float victoryPrefabYOffset = -4f; // No longer needed
-
         private GameObject _staticPlatformInstance;
-        private float _elapsedTime = 0f;
         private bool _levelStarted = false;
         private bool _isRestarting = false; // Flag to manage restart process
         private bool _playerConfirmedOnStaticPlatform = false; // New flag
+        private int _score = 0;
+        private readonly List<ScoreMarker> _scoreMarkers = new List<ScoreMarker>();
 
         // Cached components for the player
         private Health _playerHealth;
@@ -116,7 +113,12 @@ namespace JUEGOPROYECTO.Management
             Debug.Log("[GeneracionEscena] SetupInitialState: Starting setup.", this);
 
             _levelStarted = false;
-            _elapsedTime = 0f;
+            _score = 0;
+            _scoreMarkers.Clear();
+            if (ScoreManager.Instance != null)
+            {
+                ScoreManager.Instance.ResetRunScore();
+            }
 
             StopAllCoroutines(); // Stop any ongoing level logic (spawning, timers)
             ClearDynamicElements(); // Remove platforms, victory objects etc.
@@ -178,25 +180,10 @@ namespace JUEGOPROYECTO.Management
                 startPromptText.gameObject.SetActive(true);
                 startPromptText.text = startPromptMessage; // Use serialized message
             }
-            if (timerText != null)
+            if (scoreText != null)
             {
-                timerText.gameObject.SetActive(false);
-                UpdateTimerUI(); // Update to show initial time (e.g., "20") even if hidden
-            }
-            if (victoryTextUI != null) // Hide victory text
-            {
-                victoryTextUI.gameObject.SetActive(false);
-            }
-
-            // Deactivate victory object
-            if (victoryObjectInScene != null)
-            {
-                victoryObjectInScene.SetActive(false);
-                Debug.Log($"[GeneracionEscena] SetupInitialState: Deactivated victoryObjectInScene '{victoryObjectInScene.name}'.", this);
-            }
-            else
-            {
-                Debug.LogWarning("[GeneracionEscena] SetupInitialState: victoryObjectInScene is not assigned in the Inspector.", this);
+                scoreText.gameObject.SetActive(false);
+                UpdateScoreUI();
             }
 
             _isRestarting = false; // Setup/restart complete
@@ -240,11 +227,10 @@ namespace JUEGOPROYECTO.Management
                 }
             }
 
-            // If level is active, update the timer
-            if (_levelStarted && _elapsedTime < levelDuration)
+            // If level is active, update score based on passed gap markers
+            if (_levelStarted)
             {
-                _elapsedTime += Time.deltaTime;
-                UpdateTimerUI();
+                UpdateScoreProgress();
             }
 
             // Check for player death if Health component is available
@@ -269,12 +255,11 @@ namespace JUEGOPROYECTO.Management
             }
             if (startPromptText != null) startPromptText.gameObject.SetActive(false);
 
-            // Setup and show timer
-            if (timerText != null)
+            // Setup and show score
+            if (scoreText != null)
             {
-                timerText.gameObject.SetActive(true);
-                _elapsedTime = 0f; // Reset timer for the current run
-                UpdateTimerUI();
+                scoreText.gameObject.SetActive(true);
+                UpdateScoreUI();
             }
 
             // Permit jetpack usage
@@ -282,22 +267,30 @@ namespace JUEGOPROYECTO.Management
 
             // Start level mechanics
             StartCoroutine(SpawnLoop());
-            StartCoroutine(LevelTimer());
         }
 
         private void HandlePlayerDeath()
         {
             if (_isRestarting) return; // Already handling a restart/death
-            // _isRestarting will be set to true at the beginning of SetupInitialState
 
-            Debug.Log("Player died. Resetting level.", this);
-            SetupInitialState(); // Reset everything to the initial state
+            _isRestarting = true;
+            _levelStarted = false;
+            StopAllCoroutines();
+
+            if (ScoreManager.Instance != null)
+            {
+                ScoreManager.Instance.SubmitCurrentScore();
+            }
+
+            GameSessionData.LastScore = _score;
+            Debug.Log($"[GeneracionEscena] Player died. Final score: {_score}. Loading scene '{NextSceneName}'.", this);
+            SceneManager.LoadScene(NextSceneName);
         }
 
         private void ClearDynamicElements()
         {
             // Destroy all scrolling platforms (that are not the static one, though static shouldn't have the script)
-            ScrollingPlatform[] activePlatforms = FindObjectsOfType<ScrollingPlatform>();
+            ScrollingPlatform[] activePlatforms = FindObjectsByType<ScrollingPlatform>(FindObjectsSortMode.None);
             foreach (ScrollingPlatform platform in activePlatforms)
             {
                 if (platform.gameObject != _staticPlatformInstance) // Check just in case
@@ -305,11 +298,6 @@ namespace JUEGOPROYECTO.Management
                     Destroy(platform.gameObject);
                 }
             }
-
-            // Destroy victory object if it exists
-            // VictoryZone victoryZone = FindObjectOfType<VictoryZone>(); // Corrected from FindObjectsOfType
-            // if (victoryZone != null) Destroy(victoryZone.gameObject); 
-            // The victoryObjectInScene is managed by SetupInitialState (deactivated)
         }
 
         /// <summary>Spawns platform pairs at intervals.</summary>
@@ -369,148 +357,59 @@ namespace JUEGOPROYECTO.Management
             bottomScroller.speed = platformSpeed;
             bottomScroller.leftBound = leftBound;
             bottom.AddComponent<JUEGOPROYECTO.Management.PlatformCollisionReset>();
+
+            // Score marker for this gap (1 point per gap passed)
+            GameObject marker = new GameObject("ScoreMarker");
+            marker.transform.position = new Vector3(spawnX, centerY, 0f);
+            var markerScroller = marker.AddComponent<JUEGOPROYECTO.Management.ScrollingPlatform>();
+            markerScroller.speed = platformSpeed;
+            markerScroller.leftBound = leftBound;
+
+            _scoreMarkers.Add(new ScoreMarker
+            {
+                markerObject = marker,
+                counted = false
+            });
         }
 
-        /// <summary>
-        /// Waits specified time then spawns victory zone that triggers next scene
-        /// </summary>
-        IEnumerator LevelTimer()
+        private void UpdateScoreProgress()
         {
-            float timer = 0f;
-            Debug.Log($"[GeneracionEscena] LevelTimer: Coroutine started. Waiting for level duration: {levelDuration}s", this);
-            while (timer < levelDuration)
+            float playerX = playerCharacter.transform.position.x;
+
+            for (int i = _scoreMarkers.Count - 1; i >= 0; i--)
             {
-                if (!_levelStarted) // If level stopped for some other reason (e.g. death before timer end)
+                ScoreMarker marker = _scoreMarkers[i];
+
+                if (marker.markerObject == null)
                 {
-                    Debug.Log("[GeneracionEscena] LevelTimer: Level stopped prematurely. Exiting LevelTimer.", this);
-                    yield break;
+                    _scoreMarkers.RemoveAt(i);
+                    continue;
                 }
-                timer += Time.deltaTime;
-                yield return null;
-            }
 
-            if (!_levelStarted) // Double check in case it was stopped right as duration was met
-            {
-                Debug.Log("[GeneracionEscena] LevelTimer: Level stopped as duration was met. Exiting LevelTimer before spawning victory.", this);
-                yield break;
-            }
-
-            if (victoryObjectInScene == null) // Check the new serialized object
-            {
-                Debug.LogWarning("[GeneracionEscena] LevelTimer: victoryObjectInScene is not assigned in the Inspector. Cannot activate victory object.", this);
-                yield break;
-            }
-            
-            // Player character null check is still relevant for other potential uses, but not for positioning the victory object if it's pre-placed.
-            if (playerCharacter == null)
-            {
-                Debug.LogError("[GeneracionEscena] LevelTimer: playerCharacter is null. This might affect other logic if victory depended on player state/position.", this);
-                // For activating a pre-placed object, this might not be a critical failure for victory itself.
-            }
-
-            // No longer instantiating, so winPos calculation is not needed for spawning.
-            // The victoryObjectInScene is assumed to be pre-placed.
-            // float winX = playerCharacter.transform.position.x;
-            // float winY = startCharacterY + victoryPrefabYOffset; 
-            // float winZ = playerCharacter.transform.position.z; 
-            // Vector3 winPos = new Vector3(winX, winY, winZ); 
-
-            Debug.Log($"[GeneracionEscena] LevelTimer: Level duration reached. Attempting to activate victoryObjectInScene '{victoryObjectInScene.name}'", this);
-            
-            victoryObjectInScene.SetActive(true); // Activate the pre-existing object
-
-            if (victoryObjectInScene.activeSelf)
-            {
-                Debug.Log($"[GeneracionEscena] LevelTimer: Successfully activated '{victoryObjectInScene.name}' (Instance ID: {victoryObjectInScene.GetInstanceID()}) at {victoryObjectInScene.transform.position}", this);
-                Debug.Log($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' - IsActive: {victoryObjectInScene.activeSelf}, IsActiveInHierarchy: {victoryObjectInScene.activeInHierarchy}", victoryObjectInScene);
-                Debug.Log($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' - Layer: {LayerMask.LayerToName(victoryObjectInScene.layer)} (ID: {victoryObjectInScene.layer})", victoryObjectInScene);
-                Debug.Log($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' - Scale: {victoryObjectInScene.transform.localScale}", victoryObjectInScene);
-
-                Renderer rend = victoryObjectInScene.GetComponentInChildren<Renderer>(); // GetComponentInChildren to find renderer on child objects if main has none
-                if (rend != null)
+                if (!marker.counted && playerX > marker.markerObject.transform.position.x)
                 {
-                    Debug.Log($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' - Renderer found (possibly on child): {rend.GetType().Name}, IsEnabled: {rend.enabled}, IsVisible: {rend.isVisible}", victoryObjectInScene);
-                    if (rend.material != null)
+                    marker.counted = true;
+                    if (ScoreManager.Instance != null)
                     {
-                        Debug.Log($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' - Material: {rend.material.name}, Shader: {rend.material.shader.name}", victoryObjectInScene);
-                        if (rend.material.HasProperty("_Color"))
-                        {
-                            Debug.Log($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' - Material Color: {rend.material.color}", victoryObjectInScene);
-                        }
+                        ScoreManager.Instance.AddScore(1);
+                        _score = ScoreManager.Instance.CurrentScore;
                     }
                     else
                     {
-                        Debug.LogWarning($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' - Renderer has no material assigned.", victoryObjectInScene);
+                        _score++;
                     }
+                    UpdateScoreUI();
+                    Destroy(marker.markerObject);
+                    _scoreMarkers.RemoveAt(i);
                 }
-                else
-                {
-                    Debug.LogWarning($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' - No Renderer component found in children. It might not be visible.", victoryObjectInScene);
-                }
-
-                SpriteRenderer spriteRend = victoryObjectInScene.GetComponentInChildren<SpriteRenderer>(); // GetComponentInChildren
-                if (spriteRend != null)
-                {
-                    Debug.Log($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' - SpriteRenderer found (possibly on child): IsEnabled: {spriteRend.enabled}, Sprite: {(spriteRend.sprite != null ? spriteRend.sprite.name : "null")}, Color: {spriteRend.color}", victoryObjectInScene);
-                }
-                else if (rend == null) 
-                {
-                    Debug.LogWarning($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' - No SpriteRenderer component found in children either.", victoryObjectInScene);
-                }
-
-                // Check for VictoryZone, assume it's pre-configured
-                VictoryZone vz = victoryObjectInScene.GetComponent<VictoryZone>();
-                if (vz == null)
-                {
-                    Debug.LogWarning($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' does not have a VictoryZone component attached. Scene transition will not occur on touch.", victoryObjectInScene);
-                }
-                else
-                {
-                    // Optionally, you could verify vz.NextSceneName here if needed, but it should be set in Inspector.
-                    Debug.Log($"[GeneracionEscena] VictoryObject '{victoryObjectInScene.name}' has VictoryZone. Next scene should be '{vz.NextSceneName}'.", victoryObjectInScene);
-                }
-                // var vz = win.AddComponent<JUEGOPROYECTO.Management.VictoryZone>(); // No longer adding component dynamically
-                // vz.NextSceneName = NextSceneName;
-
-                // Display victory message
-                if (victoryTextUI != null)
-                {
-                    victoryTextUI.text = victoryMessage;
-                    victoryTextUI.gameObject.SetActive(true);
-                    Debug.Log($"[GeneracionEscena] LevelTimer: Displayed victory message: '{victoryMessage}'", this);
-                }
-                else
-                {
-                    Debug.LogWarning("[GeneracionEscena] LevelTimer: victoryTextUI is not assigned. Cannot display victory message.", this);
-                }
-
-                // Permit horizontal movement for the player
-                if (_horizontalMovementAbility != null)
-                {
-                    _horizontalMovementAbility.PermitAbility(true);
-                    Debug.Log("[GeneracionEscena] LevelTimer: CharacterHorizontalMovement permitted.", this);
-                }
-                else
-                {
-                    Debug.LogWarning("[GeneracionEscena] LevelTimer: _horizontalMovementAbility is null. Cannot permit horizontal movement.", this);
-                }
-
-                // Stop further level progression (like platform spawning)
-                _levelStarted = false;
-                Debug.Log("[GeneracionEscena] LevelTimer: Victory achieved. _levelStarted set to false. Platform spawning should stop.", this);
-            }
-            else
-            {
-                Debug.LogError($"[GeneracionEscena] LevelTimer: Failed to activate victoryObjectInScene '{victoryObjectInScene.name}'!", this);
             }
         }
 
-        private void UpdateTimerUI()
+        private void UpdateScoreUI()
         {
-            if (timerText != null)
+            if (scoreText != null)
             {
-                float remaining = Mathf.Max(levelDuration - _elapsedTime, 0f);
-                timerText.text = remaining.ToString("0"); // display seconds remaining
+                scoreText.text = _score.ToString();
             }
         }
     }
