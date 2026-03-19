@@ -8,6 +8,9 @@ public class APIManager : MonoBehaviour
     public static APIManager Instance;
 
     [SerializeField] private string baseUrl = "https://sid-restapi.onrender.com";
+    [Header("Auth Header")]
+    [SerializeField] private string tokenHeaderName = "x-token";
+    [SerializeField] private bool includeAuthorizationBearerHeader = true;
 
     private void Awake()
     {
@@ -40,20 +43,17 @@ public class APIManager : MonoBehaviour
         request.downloadHandler = new DownloadHandlerBuffer();
 
         request.SetRequestHeader("Content-Type", "application/json");
-
-        if (!string.IsNullOrEmpty(token))
-        {
-            request.SetRequestHeader("Authorization", "Bearer " + token);
-        }
+        AttachAuthHeaders(request, token);
 
         yield return request.SendWebRequest();
 
-        bool success = request.result == UnityWebRequest.Result.Success;
+        bool httpSuccess = request.responseCode >= 200 && request.responseCode < 300;
+        bool success = request.result == UnityWebRequest.Result.Success && httpSuccess;
         string responseText = request.downloadHandler != null ? request.downloadHandler.text : null;
 
         if (!success)
         {
-            Debug.LogError("Error: " + request.error + " | URL: " + url + " | Status: " + request.responseCode + " | Body: " + responseText);
+            Debug.LogError("POST failed: " + request.error + " | URL: " + url + " | Status: " + request.responseCode + " | Body: " + responseText);
         }
 
         callback?.Invoke(success, responseText, request.responseCode);
@@ -72,23 +72,38 @@ public class APIManager : MonoBehaviour
         string url = BuildUrl(endpoint);
 
         UnityWebRequest request = UnityWebRequest.Get(url);
-
-        if (!string.IsNullOrEmpty(token))
-        {
-            request.SetRequestHeader("Authorization", "Bearer " + token);
-        }
+        AttachAuthHeaders(request, token);
 
         yield return request.SendWebRequest();
 
-        bool success = request.result == UnityWebRequest.Result.Success;
+        bool httpSuccess = request.responseCode >= 200 && request.responseCode < 300;
+        bool success = request.result == UnityWebRequest.Result.Success && httpSuccess;
         string responseText = request.downloadHandler != null ? request.downloadHandler.text : null;
 
         if (!success)
         {
-            Debug.LogError("Error: " + request.error + " | URL: " + url + " | Status: " + request.responseCode + " | Body: " + responseText);
+            Debug.LogError("GET failed: " + request.error + " | URL: " + url + " | Status: " + request.responseCode + " | Body: " + responseText);
         }
 
         callback?.Invoke(success, responseText, request.responseCode);
+    }
+
+    private void AttachAuthHeaders(UnityWebRequest request, string token)
+    {
+        if (request == null || string.IsNullOrEmpty(token))
+        {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(tokenHeaderName))
+        {
+            request.SetRequestHeader(tokenHeaderName, token);
+        }
+
+        if (includeAuthorizationBearerHeader)
+        {
+            request.SetRequestHeader("Authorization", "Bearer " + token);
+        }
     }
 
     private string BuildUrl(string endpoint)

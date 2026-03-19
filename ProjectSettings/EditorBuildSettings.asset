@@ -228,8 +228,14 @@ EditorBuildSettings:
     path: Assets/JUEGOPROYECTO/Scenes/Nivel2.unity
     guid: decb6db142e476b43aeb8964c7cce646
   - enabled: 1
+    path: Assets/JUEGOPROYECTO/Scenes/Home2.unity
+    guid: 81707af42cd0a364884f425a848c24d9
+  - enabled: 1
     path: Assets/JUEGOPROYECTO/Scenes/FlappyWald.unity
     guid: b5dafbb7f5956d94ba41cd169cc39435
+  - enabled: 1
+    path: Assets/JUEGOPROYECTO/Scenes/Leaderboard.unity
+    guid: ef7642d7b4cd65442866f31b84908547
   - enabled: 0
     path: Assets/JUEGOPROYECTO/Scenes/Nivel3.unity
     guid: bb57cf8dcd353d0458ff51b59caa5d9e

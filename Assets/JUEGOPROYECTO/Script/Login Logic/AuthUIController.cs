@@ -23,6 +23,7 @@ public class AuthUIController : MonoBehaviour
 
     private void Start()
     {
+        Debug.Log("AuthUIController.Start() - Inicializando UI de autenticación");
         ShowLoginPanel();
     }
 
@@ -44,9 +45,12 @@ public class AuthUIController : MonoBehaviour
 
     public void OnLoginButtonPressed()
     {
+        Debug.Log("AuthUIController.OnLoginButtonPressed() - Click login");
+
         if (AuthManager.Instance == null)
         {
             SetLoginMessage("AuthManager no disponible", true);
+            Debug.LogError("AuthUIController: AuthManager.Instance es null");
             return;
         }
 
@@ -63,9 +67,11 @@ public class AuthUIController : MonoBehaviour
 
         AuthManager.Instance.Login(username, password, (ok, message) =>
         {
+            Debug.Log("AuthUIController.Login callback => ok=" + ok + " | message=" + message);
+
             if (!ok)
             {
-                SetLoginMessage(message, true);
+                SetLoginMessage(string.IsNullOrEmpty(message) ? "Servidor no dio respuesta" : message, true);
                 return;
             }
 
@@ -79,9 +85,12 @@ public class AuthUIController : MonoBehaviour
 
     public void OnRegisterButtonPressed()
     {
+        Debug.Log("AuthUIController.OnRegisterButtonPressed() - Click register");
+
         if (AuthManager.Instance == null)
         {
             SetRegisterMessage("AuthManager no disponible", true);
+            Debug.LogError("AuthUIController: AuthManager.Instance es null");
             return;
         }
 
@@ -98,9 +107,11 @@ public class AuthUIController : MonoBehaviour
 
         AuthManager.Instance.Register(username, password, (ok, message) =>
         {
+            Debug.Log("AuthUIController.Register callback => ok=" + ok + " | message=" + message);
+
             if (!ok)
             {
-                SetRegisterMessage(message, true);
+                SetRegisterMessage(string.IsNullOrEmpty(message) ? "Servidor no dio respuesta" : message, true);
                 return;
             }
 
